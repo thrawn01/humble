@@ -1,0 +1,4 @@
+
+==== Running Unit tests ====
+cd test
+nosetests
