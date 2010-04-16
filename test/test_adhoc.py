@@ -1,8 +1,12 @@
 import unittest, sys, os
+import logging
+sys.path.append(".")
 
 from humble import Humble, AdhocTable 
 from humble.database.sqlite import Sqlite
 import data
+
+#logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 class AdhocTests( unittest.TestCase ):
 

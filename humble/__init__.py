@@ -38,10 +38,11 @@
 
 class Row(object):
 
-    def __init__(self, parent, table, tuple=None):
+    def __init__(self, parent, table, tuple=None, new=False):
         self.__dict__['__table__'] = table
         self.__dict__['__parent__'] = parent
         self.__dict__['__updates__'] = { }
+        self.__dict__['__isNew__'] = new 
 
         # Merge the table names and tuples into the object dictionary
         for i in range(0, (len(tuple)-1)):
@@ -71,7 +72,11 @@ class Row(object):
         return self.__parent__.database.delete( self.__table__.name, where )
 
     def save(self):
-        "Ask our parent to save the fields we changed"
+        if self.__isNew__:
+            # Insert the fields set on this object
+            return self.__parent__.database.insert( self.__table__.__name__, self.__updates__ )
+
+        # Ask our parent to save the fields we changed
         where = { self.__table__.__pkey__ : self.__dict__[self.__table__.__pkey__] }
         return self.__parent__.database.update( self.__table__.__name__, where, self.__updates__ )
 
@@ -164,9 +169,10 @@ class Humble(object):
   
     def create(self, name):
         table = self.getTable( name )
-        # TODO: Should change this later
-        data = [ '' for column in table.__getColumns__() ]
-        return Row( self, table, data )
+        # Generate an empty dataset for our columns
+        data_set = [ '' for column in table.__getColumns__() ]
+        # Mark the row as "new"
+        return Row( self, table, data_set, new=True )
 
     def commit(self):
         self.database.commit()

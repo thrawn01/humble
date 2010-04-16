@@ -1,4 +1,10 @@
+# -------------------------------------
+# README
+# -------------------------------------
 
-==== Running Unit tests ====
-cd test
+# Run unit tests
 nosetests
+
+# With SQL Logging on
+nosetests -l humble_sql
+
