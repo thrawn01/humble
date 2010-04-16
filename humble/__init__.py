@@ -39,19 +39,19 @@
 class Row(object):
 
     def __init__(self, parent, table, tuple=None):
-        self.__dict__['_Row__table'] = table
-        self.__dict__['_Row__parent'] = parent
-        self.__dict__['_Row__updates'] = { }
+        self.__dict__['__table'] = table
+        self.__dict__['__parent'] = parent
+        self.__dict__['__updates'] = { }
 
         # Merge the table names and tuples into the object dictionary
         for i in range(0, (len(tuple)-1)):
-            self.__dict__[table.__dict__['_Table__columns'][i]] = tuple[i]
+            self.__dict__[table.__columns[i]] = tuple[i]
             
     def __setattr__(self,attr,value):
         "Saving new values to the object"
         if not attr in self.__dict__:
             raise Exception( "Table '%s' has no row named '%s'" % 
-                    ( self.__table.__dict__['_Table__name'], attr ) )
+                    ( self.__table.__dict__['__name'], attr ) )
 
         # Save to the attribute
         self.__dict__[attr] = value
@@ -61,9 +61,9 @@ class Row(object):
         result = []
         for key,value in self.__dict__.items():
             # Skip our private variables
-            if key in ['_Row__parent', '_Row__table', '_Row__updates']: continue
+            if key in ['__parent', '__table', '__updates']: continue
             result.append( "  %s : %s" % (key,value) )
-        return "%s ( %s )" % (self._Row__table.name, "\n".join(result) )
+        return "%s ( %s )" % (self.__table.__name, "\n".join(result) )
 
     def delete(self):
         "Ask our parent to delete us, ( this doesn't invalidate us ) "
@@ -72,8 +72,8 @@ class Row(object):
 
     def save(self):
         "Ask our parent to save the fields we changed"
-        where = { self.__table._Table__pkey : self.__dict__[self.__table._Table__pkey] }
-        return self.__parent.database.update( self.__table._Table__name, where, self.__updates )
+        where = { self.__table.__pkey : self.__dict__[self.__table.__pkey] }
+        return self.__parent.database.update( self.__table.__name, where, self.__updates )
 
     def toDict(self):
         return self.__dict__
@@ -82,24 +82,24 @@ class Row(object):
 class Table(object):
 
     def __init__(self, **kwargs):
-        self.__dict__['_Table__columns'] = []
+        self.__dict__['__columns'] = []
 
         # TODO: Figure this out from declarative
-        #self.__dict__['_Table__name'] = name
-        #self.__dict__['_Table__pkey'] = pkey
+        #self.__dict__['__name'] = name
+        #self.__dict__['__pkey'] = pkey
 
     def __setColumns__( self, names ):
-        self.__dict__['_Table__columns'].extend( names )
+        self.__dict__['__columns'].extend( names )
 
     def __getColumns__(self):
-        return self.__dict__['_Table__columns']
+        return self.__dict__['__columns']
 
 
 class AdhocTable(Table):
 
     def __init__(self, name, pkey, columns=[]):
-        self.__dict__['_Table__name'] = name
-        self.__dict__['_Table__pkey'] = pkey
+        self.__dict__['__name'] = name
+        self.__dict__['__pkey'] = pkey
         Table.__init__(self)
 
 
@@ -118,8 +118,8 @@ class Humble(object):
     def addTables(self, tables):
         " Figure out the names of the columns for each table we add "
         for table in tables:
-            table.__setColumns__( self.database.fetchColumns( table._Table__name ) )
-            self.tables[table._Table__name] = table
+            table.__setColumns__( self.database.fetchColumns( table.__name ) )
+            self.tables[table.__name] = table
 
     def getTable(self, name):
         """ Return the table object called 'name' """
@@ -136,7 +136,7 @@ class Humble(object):
         table = self.getTable( table_name )
 
         # Ask the database layer to fetch 1 row
-        result = self.database.fetchone( table._Table__name, table._Table__pkey, id )
+        result = self.database.fetchone( table.__name, table.__pkey, id )
 
         # Return the row
         return Row( self, table, result )
