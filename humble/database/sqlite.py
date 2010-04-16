@@ -44,8 +44,8 @@ class Sqlite( DatabaseInterface ):
     def update(self, name, where, updates ):
         where = self.buildWhere( where )
         sets = self.buildSets( updates )
-        log.debug( sql )
         sql = "UPDATE \"%s\" SET %s %s" % ( name, sets, where )
+        log.debug( sql )
         return self._execute( sql )
 
     def fetchColumns(self, name):

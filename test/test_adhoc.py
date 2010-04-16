@@ -2,35 +2,25 @@ import unittest, sys, os
 import logging
 
 from humble import Humble, AdhocTable 
-from humble.database.sqlite import Sqlite
-import data
+import config
 
 #logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 class AdhocTests( unittest.TestCase ):
 
     def setUp(self):
-        self.db_file = ( "/tmp/%s.db" % os.getpid() )
         self.employee_row1 = { 'first' : 'Derrick', 'last' : 'Wippler',
                           'age' : 31, 'address' : "DataPoint Drive" }
         self.employee_row2 = { 'first' : 'Brandie', 'last' : 'Marie',
                           'age' : 28, 'address' : "HelloKitty Drive" }
-        self.create = """CREATE TABLE employee (
-                        id      INTEGER PRIMARY KEY AUTOINCREMENT,
-                        first   CHAR(30),
-                        last    CHAR(30),
-                        age     INTEGER,
-                        address TEXT
-                    ); """
-        db = Sqlite( self.db_file )
-        db.execute( self.create )
+        self.db = config.setUpDatabase()
 
     def tearDown(self):
-        os.unlink( self.db_file )
+        config.cleanUpDatabase()
 
     def testCreate(self):
         # Tell Humble about our table without having to define it
-        humble = Humble( AdhocTable( 'employee', pkey='id' ), Sqlite( self.db_file ) )
+        humble = Humble( AdhocTable( 'employee', pkey='id' ), self.db )
 
         # Create a new row object to manipulate
         employee = humble.create( 'employee' )
@@ -50,11 +40,33 @@ class AdhocTests( unittest.TestCase ):
         # Since we didn't define these values, they are empty
         self.assertEquals( employee.age, None )
         self.assertEquals( employee.address, None )
+        return humble
+
+    def testUpdate(self):
+        humble = self.testCreate()
+
+        employee = humble.get( 'employee', 1 )
+
+        employee.age = 31
+        employee.address = "Datapoint Drive"
+      
+        # Since the record alread exists in the database 
+        # this will preform an update
+        employee.save()
+
+        # Retrieve the employee record again
+        employee = humble.get( 'employee', 1 )
+
+        self.assertEquals( employee.first, 'Derrick' )
+        self.assertEquals( employee.last, 'Wippler' )
+        self.assertEquals( employee.age, 31 )
+        self.assertEquals( employee.address, "Datapoint Drive" )
+        return humble
 
     def testDelete(self):
         pass
         # Tell Humble about our table without having to define it first
-        #humble = Humble( AdhocTable( 'employee', pkey='id' ), Sqlite( self.db_file ) )
+        #humble = Humble( AdhocTable( 'employee', pkey='id' ), self.db )
 
         # Create a new row object to manipulate
         #employee = humble.create( 'employee', fromDict=self.employee_row1 )
