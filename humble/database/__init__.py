@@ -6,10 +6,10 @@ class DatabaseInterface(object):
         self.connection = None
     
     def getName( self, table ):
-        return table.__dict__["__Table__name"]
+        return table.__name
 
     def getPkey( self, table ):
-        return table.__dict__["__Table__pkey"]
+        return table.__pkey
 
     def mogrify(self, sql, *args):
         """ Return a query string after arguments binding. 

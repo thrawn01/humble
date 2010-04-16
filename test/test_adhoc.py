@@ -1,5 +1,4 @@
 import unittest, sys, os
-sys.path.append( ".." )
 
 from humble import Humble, AdhocTable 
 from humble.database.sqlite import Sqlite
@@ -63,4 +62,8 @@ class AdhocTests( unittest.TestCase ):
         #employee.delete()
 
         #self.assertRaises( HumbleError, humble.get, 'employee', 1 )
+
+
+if __name__ == "__main__":
+    unittest.main()
 

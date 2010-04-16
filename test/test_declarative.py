@@ -18,5 +18,5 @@ class DelcarativeTest( unittest.TestCase ):
 
     def testInit(self):
         employee = Employee()
-        print dir(employee)
+        #print dir(employee)
 

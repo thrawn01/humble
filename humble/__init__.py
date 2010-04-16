@@ -39,41 +39,41 @@
 class Row(object):
 
     def __init__(self, parent, table, tuple=None):
-        self.__dict__['__table'] = table
-        self.__dict__['__parent'] = parent
-        self.__dict__['__updates'] = { }
+        self.__dict__['__table__'] = table
+        self.__dict__['__parent__'] = parent
+        self.__dict__['__updates__'] = { }
 
         # Merge the table names and tuples into the object dictionary
         for i in range(0, (len(tuple)-1)):
-            self.__dict__[table.__columns[i]] = tuple[i]
+            self.__dict__[table.__columns__[i]] = tuple[i]
             
     def __setattr__(self,attr,value):
         "Saving new values to the object"
         if not attr in self.__dict__:
             raise Exception( "Table '%s' has no row named '%s'" % 
-                    ( self.__table.__dict__['__name'], attr ) )
+                    ( self.__table__.__dict__['__name__'], attr ) )
 
         # Save to the attribute
         self.__dict__[attr] = value
-        self.__updates[attr] = value
+        self.__updates__[attr] = value
 
     def __str__(self):
         result = []
         for key,value in self.__dict__.items():
             # Skip our private variables
-            if key in ['__parent', '__table', '__updates']: continue
+            if key in ['__parent__', '__table__', '__updates__']: continue
             result.append( "  %s : %s" % (key,value) )
-        return "%s ( %s )" % (self.__table.__name, "\n".join(result) )
+        return "%s ( %s )" % (self.__table__.__name__, "\n".join(result) )
 
     def delete(self):
         "Ask our parent to delete us, ( this doesn't invalidate us ) "
-        where = { self.__table.pkey : self.__dict__[self.__table.pkey] }
-        return self.__parent.database.delete( self.__table.name, where )
+        where = { self.__table__.pkey : self.__dict__[self.__table__.pkey] }
+        return self.__parent__.database.delete( self.__table__.name, where )
 
     def save(self):
         "Ask our parent to save the fields we changed"
-        where = { self.__table.__pkey : self.__dict__[self.__table.__pkey] }
-        return self.__parent.database.update( self.__table.__name, where, self.__updates )
+        where = { self.__table__.__pkey__ : self.__dict__[self.__table__.__pkey__] }
+        return self.__parent__.database.update( self.__table__.__name__, where, self.__updates__ )
 
     def toDict(self):
         return self.__dict__
@@ -82,24 +82,24 @@ class Row(object):
 class Table(object):
 
     def __init__(self, **kwargs):
-        self.__dict__['__columns'] = []
+        self.__dict__['__columns__'] = []
 
         # TODO: Figure this out from declarative
-        #self.__dict__['__name'] = name
-        #self.__dict__['__pkey'] = pkey
+        #self.__dict__['__name__'] = name
+        #self.__dict__['__pkey__'] = pkey
 
     def __setColumns__( self, names ):
-        self.__dict__['__columns'].extend( names )
+        self.__dict__['__columns__'].extend( names )
 
     def __getColumns__(self):
-        return self.__dict__['__columns']
+        return self.__dict__['__columns__']
 
 
 class AdhocTable(Table):
 
     def __init__(self, name, pkey, columns=[]):
-        self.__dict__['__name'] = name
-        self.__dict__['__pkey'] = pkey
+        self.__dict__['__name__'] = name
+        self.__dict__['__pkey__'] = pkey
         Table.__init__(self)
 
 
@@ -118,8 +118,8 @@ class Humble(object):
     def addTables(self, tables):
         " Figure out the names of the columns for each table we add "
         for table in tables:
-            table.__setColumns__( self.database.fetchColumns( table.__name ) )
-            self.tables[table.__name] = table
+            table.__setColumns__( self.database.fetchColumns( table.__name__ ) )
+            self.tables[table.__name__] = table
 
     def getTable(self, name):
         """ Return the table object called 'name' """
@@ -136,7 +136,7 @@ class Humble(object):
         table = self.getTable( table_name )
 
         # Ask the database layer to fetch 1 row
-        result = self.database.fetchone( table.__name, table.__pkey, id )
+        result = self.database.fetchone( table.__name__, table.__pkey__, id )
 
         # Return the row
         return Row( self, table, result )
@@ -159,8 +159,8 @@ class Humble(object):
         return self.database.delete( table.name, where )
 
     def insert(self, obj ):
-        where = { obj.__table.pkey : obj.__dict__[pkey] }
-        return self.database.insert( obj.__table.name, where, obj.__updates )
+        where = { obj.__table__.__pkey__ : obj.__dict__['__pkey__'] }
+        return self.database.insert( obj.__table__.__name__, where, obj.__updates__ )
   
     def create(self, name):
         table = self.getTable( name )
