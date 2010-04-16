@@ -45,12 +45,13 @@ class Row(object):
 
         # Merge the table names and tuples into the object dictionary
         for i in range(0, (len(tuple)-1)):
-            self.__dict__[ table.columns[i] ] = tuple[i]
+            self.__dict__[table.__dict__['_Table__columns'][i]] = tuple[i]
             
     def __setattr__(self,attr,value):
         "Saving new values to the object"
         if not attr in self.__dict__:
-            raise Exception( "Table %s has no row named '%s'" % self.__table.name, attr )
+            raise Exception( "Table '%s' has no row named '%s'" % 
+                    ( self.__table.__dict__['_Table__name'], attr ) )
 
         # Save to the attribute
         self.__dict__[attr] = value
@@ -62,7 +63,7 @@ class Row(object):
             # Skip our private variables
             if key in ['_Row__parent', '_Row__table', '_Row__updates']: continue
             result.append( "  %s : %s" % (key,value) )
-        return "%s ( %s )" % (self.__table.name, "\n".join(result) )
+        return "%s ( %s )" % (self._Row__table.name, "\n".join(result) )
 
     def delete(self):
         "Ask our parent to delete us, ( this doesn't invalidate us ) "
@@ -71,24 +72,27 @@ class Row(object):
 
     def save(self):
         "Ask our parent to save the fields we changed"
-        where = { self.__table.pkey : self.__dict__[self.__table.pkey] }
-        return self.__parent.database.update( self.__table.name, where, self.__updates )
+        where = { self.__table._Table__pkey : self.__dict__[self.__table._Table__pkey] }
+        return self.__parent.database.update( self.__table._Table__name, where, self.__updates )
 
     def toDict(self):
         return self.__dict__
 
 
-class Table(Row):
+class Table(object):
 
     def __init__(self, **kwargs):
-        self.__dict__['_Table__columns'] = pkey
+        self.__dict__['_Table__columns'] = []
 
         # TODO: Figure this out from declarative
         #self.__dict__['_Table__name'] = name
         #self.__dict__['_Table__pkey'] = pkey
 
-    def __setColumns__( names ):
-        table.columns.extend( names )
+    def __setColumns__( self, names ):
+        self.__dict__['_Table__columns'].extend( names )
+
+    def __getColumns__(self):
+        return self.__dict__['_Table__columns']
 
 
 class AdhocTable(Table):
@@ -96,6 +100,7 @@ class AdhocTable(Table):
     def __init__(self, name, pkey, columns=[]):
         self.__dict__['_Table__name'] = name
         self.__dict__['_Table__pkey'] = pkey
+        Table.__init__(self)
 
 
 class Humble(object):
@@ -113,8 +118,8 @@ class Humble(object):
     def addTables(self, tables):
         " Figure out the names of the columns for each table we add "
         for table in tables:
-            table.__setColumns__( self.database.fetchColumns( table ) )
-            self.tables[table.name] = table
+            table.__setColumns__( self.database.fetchColumns( table._Table__name ) )
+            self.tables[table._Table__name] = table
 
     def getTable(self, name):
         """ Return the table object called 'name' """
@@ -123,12 +128,15 @@ class Humble(object):
         except (ValueError,KeyError):
             raise Exception( "Humble doesn't know about table '%s'" % name )
 
+    def get(self, table_name, id):
+        return self.fetchone(table_name, id)
+
     def fetchone(self, table_name, id):
         # get the information on this table
         table = self.getTable( table_name )
 
         # Ask the database layer to fetch 1 row
-        result = self.database.fetchone( table, id )
+        result = self.database.fetchone( table._Table__name, table._Table__pkey, id )
 
         # Return the row
         return Row( self, table, result )
@@ -153,6 +161,12 @@ class Humble(object):
     def insert(self, obj ):
         where = { obj.__table.pkey : obj.__dict__[pkey] }
         return self.database.insert( obj.__table.name, where, obj.__updates )
+  
+    def create(self, name):
+        table = self.getTable( name )
+        # TODO: Should change this later
+        data = [ '' for column in table.__getColumns__() ]
+        return Row( self, table, data )
 
     def commit(self):
         self.database.commit()
