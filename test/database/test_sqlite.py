@@ -2,16 +2,18 @@ import unittest, sys, os
 sys.path.append( ".." )
 sys.path.append( "../.." )
 
+from humble.database import DatabaseInterface, Int, Text, Column
 from humble.database.sqlite import Sqlite
 import data
 
 class TestSqlite( unittest.TestCase ):
 
     def setUp(self):
-        self.db = Sqlite( data.db_file )
+        self.db_name = "/tmp/%s.db" % os.getpid()
+        self.db = Sqlite( self.db_name )
 
     def tearDown(self):
-        os.unlink( data.db_file )
+        os.unlink( self.db_name )
 
     def createTable(self):
         create = """CREATE TABLE employee (
@@ -25,8 +27,16 @@ class TestSqlite( unittest.TestCase ):
 
     def testFetchColumns(self):
         self.createTable()
-        self.assertEquals( self.db.fetchColumns( 'employee' ),
-            [u'id', u'first', u'last', u'age', u'address'] )
+        result = self.db.fetchColumns( 'employee' )
+        self.assertEquals( result[0].name, 'id' )
+        self.assertEquals( result[4].name, 'address' )
+
+        #    [ Column( type=Int( default=0 ), name=u'id' ), 
+        #      Column( type=Text( default='' ), name=u'first' ), 
+        #      Column( type=Text( default='' ), name=u'last' ), 
+        #      Column( type=Int( default=0 ), name=u'age' ), 
+        #      Column( type=Text( default='' ), name=u'address' )] )
+        #[u'id', u'first', u'last', u'age', u'address'] )
    
     def testInsertAndFetch(self):
         self.createTable()

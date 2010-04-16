@@ -64,15 +64,10 @@ class AdhocTests( unittest.TestCase ):
         return humble
 
     def testDelete(self):
-        pass
-        # Tell Humble about our table without having to define it first
-        #humble = Humble( AdhocTable( 'employee', pkey='id' ), self.db )
+        humble = self.testUpdate()
 
-        # Create a new row object to manipulate
-        #employee = humble.create( 'employee', fromDict=self.employee_row1 )
-        #employee.save()
-        #employee = humble.create( 'employee', fromDict=self.employee_row2 )
-        #employee.save()
+        employee = humble.create( 'employee', fromDict=self.employee_row2 )
+        employee.save()
 
         # Get the employee record
         #employee = humble.get( 'employee', 1 )

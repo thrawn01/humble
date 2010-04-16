@@ -38,16 +38,27 @@
 
 class Row(object):
 
-    def __init__(self, parent, table, tuple=None, new=False):
+    def __init__(self, parent, table, tuple=None, fromDict=None, new=False, pkey=False):
         self.__dict__['__table__'] = table
         self.__dict__['__parent__'] = parent
         self.__dict__['__updates__'] = { }
         self.__dict__['__isNew__'] = new 
 
-        # Merge the table names and tuples into the object dictionary
-        for i in range(0, (len(tuple))):
-            self.__dict__[table.__columns__[i]] = tuple[i]
-            
+        if tuple:
+            # Merge the table names and tuples into the object dictionary
+            for i in range(0, (len(tuple))):
+                self.__dict__[table.__columns__[i].name] = tuple[i]
+
+        if fromDict:
+            for column in table.__getColumns__():
+                self.__dict__[column.name] = fromDict.get(column.name, column.type.default)
+                self.__updates__[column.name] = fromDict.get(column.name, column.type.default)
+
+            # If fromDict did NOT include the primary key value
+            if table.__pkey__ in fromDict:
+                # Don't give it a default
+                del self.__updates__[table.__pkey__]
+                
     def __setattr__(self,attr,value):
         "Saving new values to the object"
         if not attr in self.__dict__:
@@ -68,7 +79,7 @@ class Row(object):
 
     def delete(self):
         "Ask our parent to delete us, ( this doesn't invalidate us ) "
-        where = { self.__table__.pkey : self.__dict__[self.__table__.pkey] }
+        where = { self.__table__.__pkey__ : self.__dict__[self.__table__.pkey] }
         return self.__parent__.database.delete( self.__table__.name, where )
 
     def save(self):
@@ -78,7 +89,8 @@ class Row(object):
 
         # Ask our parent to save the fields we changed
         where = { self.__table__.__pkey__ : self.__dict__[self.__table__.__pkey__] }
-        return self.__parent__.database.update( self.__table__.__name__, where, self.__updates__ )
+        result = self.__parent__.database.update( self.__table__.__name__, where, self.__updates__ )
+        self.__dict__['__updates__'] = []
 
     def toDict(self):
         return self.__dict__
@@ -142,8 +154,9 @@ class Humble(object):
 
         # Ask the database layer to fetch 1 row
         result = self.database.fetchone( table.__name__, table.__pkey__, id )
+        #TODO: if result = None
         # Return the row
-        return Row( self, table, result )
+        return Row( self, table, tuple=result )
     
     def select(self, table_name, where=None):
         # get the information on this table
@@ -151,9 +164,10 @@ class Humble(object):
    
         # Ask the database layer to build and execute the query
         results = self.database.select( table, where )
+        #TODO: if result = None
 
         # Return the rows
-        return [ Row( self, table, result ) for result in results ]
+        return [ Row( self, table, tuple=result ) for result in results ]
 
     def delete(self, table_name, id ):
         # Get the information on this table
@@ -166,12 +180,16 @@ class Humble(object):
         where = { obj.__table__.__pkey__ : obj.__dict__['__pkey__'] }
         return self.database.insert( obj.__table__.__name__, where, obj.__updates__ )
   
-    def create(self, name):
+    def create(self, name, fromDict=None):
         table = self.getTable( name )
-        # Generate an empty dataset for our columns
-        data_set = [ '' for column in table.__getColumns__() ]
+
+        
+        data_set = None 
+        if not fromDict:
+            # Generate an empty dataset for our columns
+            data_set = [ column.type.default for column in table.__getColumns__() ]
         # Mark the row as "new"
-        return Row( self, table, data_set, new=True )
+        return Row( self, table, tuple=data_set, fromDict=fromDict, new=True )
 
     def commit(self):
         self.database.commit()

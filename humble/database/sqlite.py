@@ -2,7 +2,7 @@ import sqlite3
 from sqlite3 import Error
 import logging
 
-from humble.database import DatabaseInterface
+from humble.database import DatabaseInterface, Int, Text, Column
 
 log = logging.getLogger("humble_sql")
 
@@ -14,6 +14,10 @@ class Sqlite( DatabaseInterface ):
         self.connection = sqlite3.connect( file )
         # Grab our cursor
         self.cursor = self.connection.cursor()
+
+        # TODO: Add the rest of the types
+        self.type_mapping = { 'INTEGER' : Int() }
+
 
     def fetchone(self, name, pkey, id ):
         sql = "SELECT * FROM %s WHERE %s = '%s'" % ( name, pkey, id )
@@ -52,7 +56,8 @@ class Sqlite( DatabaseInterface ):
         sql = ( "PRAGMA table_info( '%s' )" % name )
         log.debug( sql )
         self._execute( sql )
-        return [ column[1] for column in self.cursor.fetchall() ]
+        return [ Column( name=column[1], type=self.toType( column[2], column[4] ) )
+                for column in self.cursor.fetchall() ]
 
     def _execute(self, sql, *args):
         try:
@@ -65,4 +70,11 @@ class Sqlite( DatabaseInterface ):
         self._execute( sql, *args )
         results = self.cursor.fetchall()
         return (self.cursor.description, results)
+
+    def toType(self, field, default):
+        # If we were asked for a type we don't know about
+        if not field in self.type_mapping.keys():
+            # Just return Text()
+            return Text(default)
+        return self.type_mapping[field].__class__(default)
 

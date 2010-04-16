@@ -1,4 +1,30 @@
 
+class Type(object):
+    def __repr__(self):
+        members = [ "%s=%r" % (key,value) for key,value in self.__dict__.items() ]
+        return "%s( %s )" % (self.__class__.__name__, ",".join( members ) )
+
+class Text(Type):
+    def __init__(self, default='' ):
+        self.default = default
+        if default == None: self.default = ''
+    def __repr__(self): return Type.__repr__(self)
+
+class Int(Type):
+    def __init__(self, default=0 ):
+        self.default = default
+        if default == None: self.default = 0
+    def __repr__(self): return Type.__repr__(self)
+
+
+class Column(object):
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+    def __repr__(self):
+        members = [ "%s=%r" % (key,value) for key,value in self.__dict__.items() ]
+        return "%s( %s )" % (self.__class__.__name__, ",".join( members ) )
+
 class DatabaseInterface(object):
 
     def __init__( self ):
