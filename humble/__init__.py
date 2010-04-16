@@ -45,7 +45,7 @@ class Row(object):
         self.__dict__['__isNew__'] = new 
 
         # Merge the table names and tuples into the object dictionary
-        for i in range(0, (len(tuple)-1)):
+        for i in range(0, (len(tuple))):
             self.__dict__[table.__columns__[i]] = tuple[i]
             
     def __setattr__(self,attr,value):
@@ -142,7 +142,6 @@ class Humble(object):
 
         # Ask the database layer to fetch 1 row
         result = self.database.fetchone( table.__name__, table.__pkey__, id )
-
         # Return the row
         return Row( self, table, result )
     

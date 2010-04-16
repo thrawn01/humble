@@ -1,6 +1,5 @@
 import unittest, sys, os
 import logging
-sys.path.append(".")
 
 from humble import Humble, AdhocTable 
 from humble.database.sqlite import Sqlite
@@ -43,12 +42,14 @@ class AdhocTests( unittest.TestCase ):
         employee.save()
 
         # Get the employee record
-        #employee = humble.get( 'employee', 1 )
+        employee = humble.get( 'employee', 1 )
 
-        #self.assertEquals( employee.first, 'Derrick' )
-        #self.assertEquals( employee.last, 'Derrick' )
-        #self.assertEquals( employee.age, 31 )
-        #self.assertEquals( employee.address, 'DataPoint Drive' )
+        self.assertEquals( employee.first, 'Derrick' )
+        self.assertEquals( employee.last, 'Wippler' )
+
+        # Since we didn't define these values, they are empty
+        self.assertEquals( employee.age, None )
+        self.assertEquals( employee.address, None )
 
     def testDelete(self):
         pass
