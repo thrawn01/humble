@@ -55,7 +55,7 @@ class Row(object):
                 self.__updates__[column.name] = fromDict.get(column.name, column.type.default)
 
             # If fromDict did NOT include the primary key value
-            if table.__pkey__ in fromDict:
+            if not table.__pkey__ in fromDict:
                 # Don't give it a default
                 del self.__updates__[table.__pkey__]
                 
@@ -183,7 +183,6 @@ class Humble(object):
     def create(self, name, fromDict=None):
         table = self.getTable( name )
 
-        
         data_set = None 
         if not fromDict:
             # Generate an empty dataset for our columns
