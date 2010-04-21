@@ -20,7 +20,7 @@ class AdhocTests( unittest.TestCase ):
 
     def testCreate(self):
         # Tell Humble about our table without having to define it
-        humble = Humble( AdhocTable( 'employee', pkey='id' ), self.db )
+        humble = Humble( self.db )
 
         # Create a new row object to manipulate
         employee = humble.create( 'employee' )

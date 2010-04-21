@@ -2,22 +2,53 @@ import sqlite3
 from sqlite3 import Error
 import logging
 
+from humble import Table, Struct
 from humble.database import DatabaseInterface, Int, Text, Column
 
 log = logging.getLogger("humble_sql")
 
+def dictFactory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
 class Sqlite( DatabaseInterface ):
 
-    def __init__(self, file ):
+    def __init__(self, tables, file ):
         log.debug( "Connect( %s )" % file )
         # Open up the sqlite file
         self.connection = sqlite3.connect( file )
+        # Sqlite DBI 2.0 extension - use dictFactory to create result rows
+        self.connection.row_factory = dictFactory
         # Grab our cursor
         self.cursor = self.connection.cursor()
 
         # TODO: Add the rest of the types
         self.type_mapping = { 'INTEGER' : Int() }
+        self.tables = {}
 
+        # Maybe we just passed in 1 table, instead of a list of tables
+        if isinstance( tables, Table ):
+            tables = [tables]
+
+        # Create a place for storing data about the table
+        for table in tables:
+            self.tables[table.__name__] = Struct( name=table.__name__, pkey=table.__pkey__, columns=[], cached=False )
+
+    def getTable(self, name):
+        """ Return the table object called 'name' """
+        try:
+            table = self.tables[name]
+            # Column names cached already?
+            if not table.cached:
+                # fetch the column names from the DB
+                table.columns = self.fetchColumns( name )
+                table.cached = True
+            return table
+
+        except (ValueError,KeyError):
+            raise Exception( "Sqlite() unknown table '%s'; forgot to add Sqlite( tables=[ Table() ] )?" % name )
 
     def fetchone(self, name, pkey, id ):
         sql = "SELECT * FROM %s WHERE %s = '%s'" % ( name, pkey, id )
@@ -56,8 +87,11 @@ class Sqlite( DatabaseInterface ):
         sql = ( "PRAGMA table_info( '%s' )" % name )
         log.debug( sql )
         self._execute( sql )
-        return [ Column( name=column[1], type=self.toType( column[2], column[4] ) )
-                for column in self.cursor.fetchall() ]
+        result = [ Column( name=row['name'], type=self.toType( row['type'], row['dflt_value'] ) )
+                   for row in self.cursor.fetchall() ]
+        if not result:
+            raise Exception( "fetchColumns(%s) returned nothing; Non-existant table?" % name )
+        return result
 
     def _execute(self, sql, *args):
         try:

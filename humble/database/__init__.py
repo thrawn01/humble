@@ -82,6 +82,11 @@ class DatabaseInterface(object):
             columns = [ ]
             values = [ ]
             for key,value in key_values.items():
+                # Since None are NULLs we *should* not insert a NULL
+                # The most databases *should* take care of this for us 
+                # ( I could be wrong? )
+                if value == None:
+                    continue
                 columns.append( key )
                 values.append( str(self.escape(value)) )
 
@@ -108,6 +113,9 @@ class DatabaseInterface(object):
                 chars[i] = types.get(chars[i], chars[i])
             return ( "'%s'" % ''.join(chars) )
         except TypeError:
+            # NoneType is treated as a NULL
+            if value is None:
+                return "NULL"
             # If we get an error, might indicate 'value' is an int or bool
             if isinstance( value, bool ):
                 if value: 

@@ -1,69 +1,34 @@
 """ 
-    Implements a Simple Active Record Pattern
+    Humble Implements a Simple Active Record Pattern
     for a very light layer over database rows 
-
-    Current Usage:
-
-        # Create the active record singleton
-        humble = Humble( Table( 'notification_task', pkey='id' ) )
-
-        # Get a row
-        row = humble.fetchone( 'notification_task', '22' )
-
-        # Use the row
-        print row.id
-
-        # Delete the row
-        row.delete()
-
-        # Commit the transation
-        humble.commit()
-
-        # Select with where
-        rows = humble.select( 'notification_task', where = { 'notification_id' : '23' } )
-
-        for row in rows:
-            print row.id, row.account
-
-        # Get a row
-        row = humble.fetchone( 'notification_task', '22' )
-
-        row.account = 12345
-        row.save()
-
-        # Commit the transation
-        humble.commit()
-
 """
+
+class Struct(object):
+    def __init__(self, **attrs):
+        for name,value in attrs.items():
+            setattr( self, name, value)
+
+    def __repr__(self):
+        members = [ "%s=%r" % (key,value) for key,value in self.__dict__.items() ]
+        return "%s( %s )" % (self.__class__.__name__, ",".join( members ) )
 
 class Row(object):
 
-    def __init__(self, parent, table, tuple=None, fromDict=None, new=False, pkey=False):
+    def __init__(self, parent, table, fromDict=None, new=False, pkey=False, withValues=False):
         self.__dict__['__table__'] = table
         self.__dict__['__parent__'] = parent
         self.__dict__['__updates__'] = { }
         self.__dict__['__isNew__'] = new 
 
-        if tuple:
-            # Merge the table names and tuples into the object dictionary
-            for i in range(0, (len(tuple))):
-                self.__dict__[table.__columns__[i].name] = tuple[i]
-
-        if fromDict:
-            for column in table.__getColumns__():
-                self.__dict__[column.name] = fromDict.get(column.name, column.type.default)
-                self.__updates__[column.name] = fromDict.get(column.name, column.type.default)
-
-            # If fromDict did NOT include the primary key value
-            if not table.__pkey__ in fromDict:
-                # Don't give it a default
-                del self.__updates__[table.__pkey__]
+        self.__dict__.update( fromDict )
+        if withValues:
+            self.__updates__.update( fromDict )
                 
     def __setattr__(self,attr,value):
         "Saving new values to the object"
         if not attr in self.__dict__:
             raise Exception( "Table '%s' has no row named '%s'" % 
-                    ( self.__table__.__dict__['__name__'], attr ) )
+                    ( self.__table__.name, attr ) )
 
         # Save to the attribute
         self.__dict__[attr] = value
@@ -75,22 +40,23 @@ class Row(object):
             # Skip our private variables
             if key in ['__parent__', '__table__', '__updates__']: continue
             result.append( "  %s : %s" % (key,value) )
-        return "%s ( %s )" % (self.__table__.__name__, "\n".join(result) )
+        return "%s ( %s )" % (self.__table__.name, "\n".join(result) )
 
     def delete(self):
         "Ask our parent to delete us, ( this doesn't invalidate us ) "
-        where = { self.__table__.__pkey__ : self.__dict__[self.__table__.pkey] }
+        where = { self.__table__.pkey : self.__dict__[self.__table__.pkey] }
         return self.__parent__.database.delete( self.__table__.name, where )
 
     def save(self):
         if self.__isNew__:
             # Insert the fields set on this object
-            return self.__parent__.database.insert( self.__table__.__name__, self.__updates__ )
+            return self.__parent__.database.insert( self.__table__.name, self.__updates__ )
 
         # Ask our parent to save the fields we changed
-        where = { self.__table__.__pkey__ : self.__dict__[self.__table__.__pkey__] }
-        result = self.__parent__.database.update( self.__table__.__name__, where, self.__updates__ )
+        where = { self.__table__.pkey : self.__dict__[self.__table__.pkey] }
+        result = self.__parent__.database.update( self.__table__.name, where, self.__updates__ )
         self.__dict__['__updates__'] = []
+        return result
 
     def toDict(self):
         return self.__dict__
@@ -122,73 +88,61 @@ class AdhocTable(Table):
 
 class Humble(object):
     
-    def __init__(self, tables, database):
-        self.tables = {}
+    def __init__(self, database):
         self.database = database
-
-        # Maybe we just passed in 1 table, instead of a list of tables
-        if isinstance( tables, Table ):
-            tables = [tables]
-        
-        self.addTables( tables )
-
-    def addTables(self, tables):
-        " Figure out the names of the columns for each table we add "
-        for table in tables:
-            table.__setColumns__( self.database.fetchColumns( table.__name__ ) )
-            self.tables[table.__name__] = table
-
-    def getTable(self, name):
-        """ Return the table object called 'name' """
-        try:
-            return self.tables[name]
-        except (ValueError,KeyError):
-            raise Exception( "Humble doesn't know about table '%s'" % name )
 
     def get(self, table_name, id):
         return self.fetchone(table_name, id)
 
     def fetchone(self, table_name, id):
         # get the information on this table
-        table = self.getTable( table_name )
+        table = self.database.getTable( table_name )
 
         # Ask the database layer to fetch 1 row
-        result = self.database.fetchone( table.__name__, table.__pkey__, id )
-        #TODO: if result = None
+        result = self.database.fetchone( table.name, table.pkey, id )
+        if not result:
+            raise Exception( "fetchone( table=%s, pkey=%s ) returned None; non-existant row?" % \
+                    (table.name, table.pkey ) )
         # Return the row
-        return Row( self, table, tuple=result )
+        return Row( self, table, fromDict=result )
     
     def select(self, table_name, where=None):
         # get the information on this table
-        table = self.getTable( table_name )
+        table = self.database.getTable( table_name )
    
         # Ask the database layer to build and execute the query
         results = self.database.select( table, where )
         #TODO: if result = None
 
         # Return the rows
-        return [ Row( self, table, tuple=result ) for result in results ]
+        return [ Row( self, table, fromDict=result ) for result in results ]
 
     def delete(self, table_name, id ):
         # Get the information on this table
-        table = self.getTable( table_name )
+        table = self.database.getTable( table_name )
 
         where = { table.pkey : id }
         return self.database.delete( table.name, where )
 
-    def insert(self, obj ):
-        where = { obj.__table__.__pkey__ : obj.__dict__['__pkey__'] }
-        return self.database.insert( obj.__table__.__name__, where, obj.__updates__ )
+    #def insert(self, obj ):
+        #table = self.database.getTable( name )
+        #where = { obj.__table__.__pkey__ : obj.__dict__['__pkey__'] }
+        #return self.database.insert( obj.__table__.__name__, where, obj.__updates__ )
   
-    def create(self, name, fromDict=None):
-        table = self.getTable( name )
+    def create(self, name, fromDict={}):
+        rowDict = {}
 
-        data_set = None 
-        if not fromDict:
-            # Generate an empty dataset for our columns
-            data_set = [ column.type.default for column in table.__getColumns__() ]
-        # Mark the row as "new"
-        return Row( self, table, tuple=data_set, fromDict=fromDict, new=True )
+        table = self.database.getTable( name )
+        for column in table.columns:
+            rowDict[column.name] = fromDict.get( column.name, None )
+
+        # If fromDict did NOT include the primary key value
+        if not table.pkey in fromDict:
+            # Don't give it a default
+            rowDict[table.pkey] = None
+
+        # Tel the row object this is a 'new' row
+        return Row( self, table, fromDict=rowDict, new=True, withValues=True )
 
     def commit(self):
         self.database.commit()
