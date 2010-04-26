@@ -70,11 +70,16 @@ class AdhocTests( unittest.TestCase ):
         employee.save()
 
         # Get the employee record
-        #employee = humble.get( 'employee', 1 )
-        #employee.delete()
+        employee = humble.get( 'employee', 1 )
+        employee.delete()
 
-        #self.assertRaises( HumbleError, humble.get, 'employee', 1 )
+        self.assertRaises( Exception, humble.get, 'employee', 1 )
 
+        employee = humble.get( 'employee', 2 )
+        self.assertEquals( employee.first, 'Brandie' )
+        self.assertEquals( employee.last, 'Marie' )
+        self.assertEquals( employee.age, 28 )
+        self.assertEquals( employee.address, "HelloKitty Drive" )
 
 if __name__ == "__main__":
     unittest.main()
