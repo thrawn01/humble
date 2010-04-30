@@ -124,10 +124,23 @@ class Humble(object):
         where = { table.pkey : id }
         return self.database.delete( table.name, where )
 
-    #def insert(self, obj ):
-        #table = self.database.getTable( name )
-        #where = { obj.__table__.__pkey__ : obj.__dict__['__pkey__'] }
-        #return self.database.insert( obj.__table__.__name__, where, obj.__updates__ )
+    def insert(self, name, fromDict={} ):
+        table = self.database.getTable( name )
+
+        def IN(key):
+            for column in table.columns:
+                if key == column.name:
+                    return True
+            return False
+            
+        # Validate the fields first
+        for key,value in fromDict.iteritems():
+            print key,value
+            if not IN( key ):    
+                raise Exception( "Table '%s' has no such column '%s'" % ( name, key ) )
+
+        # Insert the fields set on this object
+        return self.database.insert( name, fromDict )
   
     def create(self, name, fromDict={}):
         rowDict = {}

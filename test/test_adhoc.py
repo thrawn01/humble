@@ -81,6 +81,22 @@ class AdhocTests( unittest.TestCase ):
         self.assertEquals( employee.age, 28 )
         self.assertEquals( employee.address, "HelloKitty Drive" )
 
+    def testInsert(self):
+        humble = self.testUpdate()
+
+        humble.insert( "employee", { 'first':'Joe', 'last':'McBride', 'age':21, 'address':"Castle Drive" } )
+        humble.insert( "employee", { 'first':'Nathan', 'last':'Cassano', 'age':29, 'address':"Washington Drive" } )
+        humble.insert( "employee", { 'first':'Ryan', 'last':'Springer', 'age':28, 'address':"France Drive" } )
+        
+        
+        employee = humble.get( 'employee', 4 )
+        self.assertEquals( employee.first, 'Ryan' )
+        self.assertEquals( employee.last, 'Springer' )
+        self.assertEquals( employee.age, 28 )
+        self.assertEquals( employee.address, "France Drive" )
+
+        self.assertRaises( Exception, humble.insert, 'employee', { 'blah':'Ryan', 'last':'Springer', 'age':28, 'address':"France Drive" } )
+
 if __name__ == "__main__":
     unittest.main()
 
