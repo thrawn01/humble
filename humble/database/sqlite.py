@@ -13,6 +13,34 @@ def dictFactory(cursor, row):
         d[col[0]] = row[idx]
     return d
 
+class SqlGenerator( object ):    
+
+    @classmethod
+    def where( self, struct ):
+        return " WHERE %s " % self.conditionals( struct['where'] )
+
+    @classmethod
+    def conditionals( self, struct ):
+        result = []
+        for left, operator, right in struct:
+            result.append( "%s %s %s" % ( self.toString( left ), operator, self.toString( right ) ) )
+        return " AND ".join( result )
+
+    @classmethod
+    def toString( self, struct ):
+        try:
+            try:
+                (table,name) = struct
+                return "%s.%s" % ( table, name )
+            except ValueError:
+                return str(struct[0])
+        except IndexError:
+            raise Exception( "Column Identifer must be a tuple ( table, name ) or ( name, )" )
+        except TypeError:
+            # Must be a literal ( string, int, etc.. )
+            return str(struct)
+            
+
 class Sqlite( DatabaseInterface ):
 
     def __init__(self, tables, file ):
@@ -57,7 +85,7 @@ class Sqlite( DatabaseInterface ):
         return self.cursor.fetchone()
 
     def select(self, name, where=None):
-        where = self.buildWhere( where )
+        where = SqlGenerator.where( where )
         sql = "SELECT * FROM \"%s\" %s" % ( name, where )
         log.debug( sql )
         self._execute( sql )

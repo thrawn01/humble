@@ -111,7 +111,7 @@ class Humble(object):
         table = self.database.getTable( table_name )
    
         # Ask the database layer to build and execute the query
-        results = self.database.select( table, where )
+        results = self.database.select( table.name, where )
         #TODO: if result = None
 
         # Return the rows
@@ -135,7 +135,6 @@ class Humble(object):
             
         # Validate the fields first
         for key,value in fromDict.iteritems():
-            print key,value
             if not IN( key ):    
                 raise Exception( "Table '%s' has no such column '%s'" % ( name, key ) )
 
