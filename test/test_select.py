@@ -26,13 +26,13 @@ class SelectTests( unittest.TestCase ):
     def testSimpleWhere(self):
         humble = self.createDataSet()
         
-        result = humble.select( 'employee', where( equal( 'age', 28 ) ) )
+        result = humble.select( 'employee', where( equal( column( 'age' ), 28 ) ) )
         self.assertEqual( result[0].first, 'Ryan' )
         self.assertEqual( result[0].last, 'Springer' )
         self.assertEqual( result[0].age, 28 )
 
-        #result = humble.select( 'employee', where( equal( 'employee.age', 28 ), equal( 'employee.last', 'McBride' ) ) )
-        #self.assertEqual( result[0].first, 'Ryan' )
+        result = humble.select( 'employee', where( equal( column( 'age' ), 28 ), equal( column( 'last' ), 'McBride' ) ) )
+        self.assertEqual( result[0].first, 'Ryan' )
         #self.assertEqual( result[0].last, 'Springer' )
         #self.assertEqual( result[0].age, 28 )
 

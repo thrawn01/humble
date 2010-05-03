@@ -15,22 +15,24 @@ class QueryTests( unittest.TestCase ):
         config.cleanUpDatabase()
 
     def testOperators(self):
-        self.assertEquals( equal( 'age', 28 ), ( ('age',), '=', 28 ) )
-        self.assertEquals( lessThan( 'age', 28 ), ( ('age',), '<', 28 ) )
-        self.assertEquals( greaterThan( 'age', 28 ), ( ('age',), '>', 28 ) )
+        self.assertEquals( equal( column( 'age' ) , 28 ), ( { 'column': (None, 'age' ) }, '=', 28 ) )
+        self.assertEquals( equal( column( 'last' ) , 'McBride' ), ( { 'column': (None, 'last' ) }, '=', 'McBride' ) )
+        self.assertEquals( lessThan( column( 'age' ), 28 ), ( { 'column': (None, 'age' ) }, '<', 28 ) )
+        self.assertEquals( greaterThan( column( 'age' ), 28 ), ( { 'column': (None, 'age' ) }, '>', 28 ) )
         
     def testWhere(self):
 
-        self.assertEquals( where( equal( 'age', 28 ) ), {
+        self.assertEquals( where( equal( column( 'age' ), 28 ), equal( column( 'last' ), 'McBride' ) ), {
                 'where': (
-                    (('age',), '=', 28 ),
+                    ( { 'column': (None, 'age') }, '=', 28 ), 
+                    ( { 'column': (None, 'last') }, '=', 'McBride' ), 
                 ) 
             })
 
-        self.assertEquals( where( lessThan( 'age', 30 ), greaterThan( 'age', 20 )  ), { 
+        self.assertEquals( where( lessThan( column( 'age' ), 30 ), greaterThan( column( 'age' ), 20 )  ), { 
                 'where': (
-                    (('age',), '<', 30), 
-                    (('age',), '>', 20)
+                    ( { 'column': (None, 'age') }, '<', 30 ), 
+                    ( { 'column': (None, 'age') }, '>', 20 )
                 )
             })
 

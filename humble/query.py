@@ -2,17 +2,10 @@
     Defines the functions that create
     the query structure humble consumes
 """
-__all__ = [ 'equal', 'lessThan', 'greaterThan', 'where' ]
-
-def toTuple( string ):
-    try:
-        return tuple( string.split(".") )
-    except AttributeError:
-        # Might be an integer
-        return string
+__all__ = [ 'equal', 'lessThan', 'greaterThan', 'column', 'where' ]
 
 def compare( left, operator, right ):
-    return ( toTuple( left ), operator, toTuple( right ) )
+    return ( left, operator, right )
 
 def equal( left, right ):
     return compare( left, '=', right )
@@ -22,6 +15,11 @@ def lessThan( left, right ):
 
 def greaterThan( left, right ):
     return compare( left, '>', right )
+
+def column( table, column=None ):
+    if column:
+        return { 'column' : (table,column) }
+    return { 'column' : (None,table) }
 
 def where( *args ):
     return { 'where' : args }

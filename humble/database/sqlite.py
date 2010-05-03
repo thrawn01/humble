@@ -23,22 +23,39 @@ class SqlGenerator( object ):
     def conditionals( self, struct ):
         result = []
         for left, operator, right in struct:
-            result.append( "%s %s %s" % ( self.toString( left ), operator, self.toString( right ) ) )
+            result.append( "%s %s %s" % ( self.exprToString( left ), operator, self.exprToString( right ) ) )
         return " AND ".join( result )
 
     @classmethod
-    def toString( self, struct ):
+    def columnToString( self, dict ):
         try:
-            try:
-                (table,name) = struct
-                return "%s.%s" % ( table, name )
-            except ValueError:
-                return str(struct[0])
+            ( table, name ) = dict['column']
+            if table:
+                return "\"%s.%s\"" % ( table, name )
+            return "\"%s\"" % ( name )
+
         except IndexError:
-            raise Exception( "Column Identifer must be a tuple ( table, name ) or ( name, )" )
+            raise Exception( "Column Identifer must be a tuple { column: ( table, name ) } ; "
+                             "Got '%s' instead" %  dict.__class__.__name__ )
+
+    @classmethod
+    def exprToString( self, expr ):
+        try:
+            print "expr ", expr
+            # A string literal
+            if type( expr ) == str:
+                print "is String ", expr
+                return "'%s'" % expr 
+
+            # Column expressions
+            if 'column' in expr:
+                print "column ", expr
+                return self.columnToString( expr )
+
         except TypeError:
-            # Must be a literal ( string, int, etc.. )
-            return str(struct)
+            print "is Int ", expr
+            # Must be a literal integer
+            return str( expr )
             
 
 class Sqlite( DatabaseInterface ):
