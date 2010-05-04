@@ -15,48 +15,54 @@ def dictFactory(cursor, row):
 
 class SqlGenerator( object ):    
 
-    @classmethod
-    def where( self, struct ):
-        return " WHERE %s " % self.conditionals( struct['where'] )
+    def __init__( self, parent ):
+        self.parent = parent
 
-    @classmethod
-    def conditionals( self, struct ):
-        result = []
-        for left, operator, right in struct:
-            result.append( "%s %s %s" % ( self.exprToString( left ), operator, self.exprToString( right ) ) )
-        return " AND ".join( result )
-
-    @classmethod
-    def columnToString( self, dict ):
-        try:
-            ( table, name ) = dict['column']
-            if table:
-                return "\"%s.%s\"" % ( table, name )
-            return "\"%s\"" % ( name )
-
-        except IndexError:
-            raise Exception( "Column Identifer must be a tuple { column: ( table, name ) } ; "
-                             "Got '%s' instead" %  dict.__class__.__name__ )
-
-    @classmethod
     def exprToString( self, expr ):
         try:
-            print "expr ", expr
             # A string literal
             if type( expr ) == str:
-                print "is String ", expr
-                return "'%s'" % expr 
+                return expr 
 
             # Column expressions
-            if 'column' in expr:
-                print "column ", expr
-                return self.columnToString( expr )
+            if expr[0] == 'column':
+                return self.columnToString( expr[1:] )
+            
+            # Everything else, is evaluated and joined
+            return " ".join( [ "%s" % self.exprToString( e ) for e in expr ] )
 
         except TypeError:
-            print "is Int ", expr
-            # Must be a literal integer
             return str( expr )
             
+    def columnToString( self, expr ):
+        try:
+            (table,name) = expr
+            if table:
+                return "%s.%s" % (table, name)
+            return "%s.%s" % ( self.findColumn( name ), name )
+        except IndexError:
+            raise Exception( "Column Identifer must be a tuple { column: ( table, name ) } ; "
+                             "Got '%s' instead" %  expr.__class__.__name__ )
+
+    def findColumn( self, name ):
+        result = []
+        for key,table in self.parent.tables.iteritems():
+            # TODO: Replace Struct() with a proper class, 
+            # and put this method in the class
+            def IN(key):
+                for column in table.columns:
+                    if key == column.name:
+                        return True
+                return False
+            if IN( name ):
+                result.append( table.name )
+
+        if len( result ) > 1:
+            raise Exception( "Column '%s' is ambigous; you must specify a table name" % name )
+        if len( result ) == 0:
+            raise Exception( "Unknown column '%s'" % name )
+        return result[0]
+
 
 class Sqlite( DatabaseInterface ):
 
@@ -80,6 +86,8 @@ class Sqlite( DatabaseInterface ):
         # Create a place for storing data about the table
         for table in tables:
             self.tables[table.__name__] = Struct( name=table.__name__, pkey=table.__pkey__, columns=[], cached=False )
+        
+        self.generator = SqlGenerator( parent=self )
 
     def getTable(self, name):
         """ Return the table object called 'name' """
@@ -102,7 +110,7 @@ class Sqlite( DatabaseInterface ):
         return self.cursor.fetchone()
 
     def select(self, name, where=None):
-        where = SqlGenerator.where( where )
+        where = self.generator.exprToString( where )
         sql = "SELECT * FROM \"%s\" %s" % ( name, where )
         log.debug( sql )
         self._execute( sql )

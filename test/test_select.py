@@ -31,11 +31,12 @@ class SelectTests( unittest.TestCase ):
         self.assertEqual( result[0].last, 'Springer' )
         self.assertEqual( result[0].age, 28 )
 
-        result = humble.select( 'employee', where( equal( column( 'age' ), 28 ), equal( column( 'last' ), 'McBride' ) ) )
-        self.assertEqual( result[0].first, 'Ryan' )
-        #self.assertEqual( result[0].last, 'Springer' )
-        #self.assertEqual( result[0].age, 28 )
+        result = humble.select( 'employee', where( sql_or( equal( column( 'age' ), 28 ), equal( column( 'last' ), '"McBride"' ) ) ) )
+        self.assertEqual( result[0].first, 'Joe' )
+        self.assertEqual( result[0].last, 'McBride' )
+        self.assertEqual( result[0].age, 21 )
 
-        #self.assertEqual( result[1].first, 'Joe' )
-        #self.assertEqual( result[1].last, 'McBride' )
-        #self.assertEqual( result[1].age, 21 )
+        self.assertEqual( result[1].first, 'Ryan' )
+        self.assertEqual( result[1].last, 'Springer' )
+        self.assertEqual( result[1].age, 28 )
+

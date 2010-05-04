@@ -64,26 +64,15 @@ class Row(object):
 
 class Table(object):
 
-    def __init__(self, **kwargs):
-        self.__dict__['__columns__'] = []
-
-        # TODO: Figure this out from declarative
-        #self.__dict__['__name__'] = name
-        #self.__dict__['__pkey__'] = pkey
-
-    def __setColumns__( self, names ):
-        self.__dict__['__columns__'].extend( names )
-
-    def __getColumns__(self):
-        return self.__dict__['__columns__']
-
+    def __init__(self, name, pkey, columns=[]):
+        self.__dict__['__name__'] = name
+        self.__dict__['__pkey__'] = pkey
+        self.columns = columns
 
 class AdhocTable(Table):
 
     def __init__(self, name, pkey, columns=[]):
-        self.__dict__['__name__'] = name
-        self.__dict__['__pkey__'] = pkey
-        Table.__init__(self)
+        Table.__init__( self, name, pkey, columns=columns )
 
 
 class Humble(object):

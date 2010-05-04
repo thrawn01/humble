@@ -15,26 +15,40 @@ class QueryTests( unittest.TestCase ):
         config.cleanUpDatabase()
 
     def testOperators(self):
-        self.assertEquals( equal( column( 'age' ) , 28 ), ( { 'column': (None, 'age' ) }, '=', 28 ) )
-        self.assertEquals( equal( column( 'last' ) , 'McBride' ), ( { 'column': (None, 'last' ) }, '=', 'McBride' ) )
-        self.assertEquals( lessThan( column( 'age' ), 28 ), ( { 'column': (None, 'age' ) }, '<', 28 ) )
-        self.assertEquals( greaterThan( column( 'age' ), 28 ), ( { 'column': (None, 'age' ) }, '>', 28 ) )
+        self.assertEquals( equal( column( 'age' ) , 28 ), 
+                ( ( 'column', None, 'age' ), '=', 28 ) )
+
+        self.assertEquals( equal( column( 'last' ) , "'McBride'" ), 
+                ( ( 'column', None, 'last' ), '=', "'McBride'" ) )
+
+        self.assertEquals( lessThan( column( 'age' ), 28 ),
+                ( ( 'column', None, 'age' ), '<', 28 ) )
+
+        self.assertEquals( greaterThan( column( 'age' ), 28 ),
+                ( ( 'column', None, 'age' ), '>', 28 ) )
         
     def testWhere(self):
 
-        self.assertEquals( where( equal( column( 'age' ), 28 ), equal( column( 'last' ), 'McBride' ) ), {
-                'where': (
-                    ( { 'column': (None, 'age') }, '=', 28 ), 
-                    ( { 'column': (None, 'last') }, '=', 'McBride' ), 
-                ) 
-            })
+        self.assertEquals( where( equal( column( 'age' ), 28 ), equal( column( 'last' ), 'McBride' ) ), 
+            ( 'where', 
+              ( ( 'column', None, 'age' ), '=', 28 ), 
+              ( ( 'column', None, 'last' ), '=', 'McBride' ), 
+            ) 
+        )
 
-        self.assertEquals( where( lessThan( column( 'age' ), 30 ), greaterThan( column( 'age' ), 20 )  ), { 
-                'where': (
-                    ( { 'column': (None, 'age') }, '<', 30 ), 
-                    ( { 'column': (None, 'age') }, '>', 20 )
-                )
-            })
+        self.assertEquals( where( sql_or( lessThan( column( 'age' ), 30 ), greaterThan( column( 'age' ), 20 ) ) ), 
+            ('where',
+                ( ( ('column', None, 'age'), '<', 30),
+                'or',
+                ( ('column', None, 'age'), '>', 20 ) )
+            )
+        )
+        self.assertEquals( where( sql_or( equal( column( 'age' ), 28 ), equal( column( 'last' ), '"McBride"' ) ) ), 
+            ('where',
+                 ((('column', None, 'age'), '=', 28),
+                  'or',
+                  (('column', None, 'last'), '=', '"McBride"')))
+         )
 
         # TODO: After delcarative layer 
         # where( Employee.age == 28 )
