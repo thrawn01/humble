@@ -1,4 +1,18 @@
 # -------------------------------------
+# Install
+# -------------------------------------
+
+sudo aptitude install ctags python-setuptools python-dev \
+                      build-essential git-core gitk \
+                      libsqlite3-dev
+
+sudo easy_install -U pip
+sudo pip install -U virtualenv
+
+pip install pysqlite
+
+
+# -------------------------------------
 # README
 # -------------------------------------
 
