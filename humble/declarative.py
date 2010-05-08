@@ -25,23 +25,34 @@ def make_hook(f):
 
 class DeclarativeType(type):
     def __new__(cls, name, bases, attrs):
-
+        new_attrs = {}
+        
+        # Don't transform if this is called on the BaseClass
         if name.startswith('Declarative'):
             return super(DeclarativeType, cls).__new__(cls, name, bases, attrs)
 
-        print 'name ', name
-        print 'bases ', bases
-        print 'attrs ', attrs
+        # If user didn't supply name
+        if not attrs.get( '__name__', None ):
+            # Use the name of the class
+            new_attrs['name'] = name
+        else:
+            new_attrs['name'] = attrs['__name__']
+            del attrs['__name__']
 
-        # Go over attributes and see if they should be renamed.
-        newattrs = {}
-        for attrname, attrvalue in attrs.iteritems():
-            if getattr(attrvalue, 'is_hook', 0):
-                newattrs['__%s__' % attrname] = attrvalue
-            else:
-                newattrs[attrname] = attrvalue
+        # Transform into an object that looks like a Table() object
+        columns = []
+        for key, value in attrs.iteritems():
+            if not key in [ '__module__' ]:
+                columns.append( key )
+                continue
+            new_attrs[key] = value
 
-        return super(DeclarativeType, cls).__new__(cls, name, bases, newattrs)
+
+        # TODO: Figure out the primary key
+
+        new_attrs['columns'] = columns
+
+        return super(DeclarativeType, cls).__new__(cls, name, bases, new_attrs )
 
     #def __init__(self, name, bases, attrs):
         #super(DeclarativeType, self).__init__(name, bases, attrs)

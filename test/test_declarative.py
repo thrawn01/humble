@@ -17,8 +17,15 @@ class DelcarativeTest( unittest.TestCase ):
     def setUp(self): pass
     def tearDown(self): pass
 
-    def testCreateTables(self):
+    def testMetaClass(self):
         emp = Employee()
+        self.assertEquals( emp.columns , ['last', 'age', 'address', 'id', 'first'] )
+        self.assertEquals( emp.name , 'employee' )
+        self.assertEquals( emp.__dict__ , {} )
+        self.assertEquals( emp.__class__.__name__ , 'Employee' )
+
+    def testCreateTables(self):
+        pass
         #db = Sqlite( tables = [ Employee() ] )
 
         # Create the database
