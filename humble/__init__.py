@@ -14,8 +14,9 @@ class Struct(object):
 
 class Row(object):
 
-    def __init__(self, parent, table, fromDict=None, new=False, pkey=False, withValues=False):
-        self.__dict__['__table__'] = table
+    def __init__(self, parent, name, pkey, fromDict=None, new=False, withValues=False):
+        self.__dict__['__name__'] = name
+        self.__dict__['__pkey__'] = pkey
         self.__dict__['__parent__'] = parent
         self.__dict__['__updates__'] = { }
         self.__dict__['__isNew__'] = new 
@@ -28,7 +29,7 @@ class Row(object):
         "Saving new values to the object"
         if not attr in self.__dict__:
             raise Exception( "Table '%s' has no row named '%s'" % 
-                    ( self.__table__.name, attr ) )
+                    ( self.__name__, attr ) )
 
         # Save to the attribute
         self.__dict__[attr] = value
@@ -38,36 +39,38 @@ class Row(object):
         result = []
         for key,value in self.__dict__.items():
             # Skip our private variables
-            if key in ['__parent__', '__table__', '__updates__']: continue
+            if key in ['__parent__', '__name__', '__pkey__', '__updates__']: continue
             result.append( "  %s : %s" % (key,value) )
-        return "%s ( %s )" % (self.__table__.name, "\n".join(result) )
+        return "%s ( %s )" % (self.__name__, "\n".join(result) )
 
     def delete(self):
         "Ask our parent to delete us, ( this doesn't invalidate us ) "
-        where = { self.__table__.pkey : self.__dict__[self.__table__.pkey] }
-        return self.__parent__.database.delete( self.__table__.name, where )
+        where = { self.__pkey__ : self.__dict__[self.__pkey__] }
+        return self.__parent__.database.delete( self.__name__, where )
 
     def save(self):
         if self.__isNew__:
             # Insert the fields set on this object
-            return self.__parent__.database.insert( self.__table__.name, self.__updates__ )
+            return self.__parent__.database.insert( self.__name__, self.__updates__ )
 
         # Ask our parent to save the fields we changed
-        where = { self.__table__.pkey : self.__dict__[self.__table__.pkey] }
-        result = self.__parent__.database.update( self.__table__.name, where, self.__updates__ )
+        where = { self.__pkey__ : self.__dict__[self.__pkey__] }
+        result = self.__parent__.database.update( self.__name__, where, self.__updates__ )
         self.__dict__['__updates__'] = []
         return result
 
     def toDict(self):
-        return self.__dict__
+        temp = self.__dict__
+        temp.update( self.__updates__ )
+        return temp
 
 
 class Table(object):
 
     def __init__(self, name, pkey, columns=[]):
-        self.__dict__['__name__'] = name
-        self.__dict__['__pkey__'] = pkey
-        self.columns = columns
+        self.__name__ = name
+        self.__pkey__ = pkey
+        self.__columns__ = columns
 
 
 class Humble(object):
@@ -88,7 +91,7 @@ class Humble(object):
             raise Exception( "fetchone( table=%s, pkey=%s ) returned None; non-existant row?" % \
                     (table.name, table.pkey ) )
         # Return the row
-        return Row( self, table, fromDict=result )
+        return Row( self, table.name, table.pkey, fromDict=result )
     
     def select(self, table_name, where=None):
         # get the information on this table
@@ -99,7 +102,7 @@ class Humble(object):
         #TODO: if result = None
 
         # Return the rows
-        return [ Row( self, table, fromDict=result ) for result in results ]
+        return [ Row( self, table.name, table.pkey, fromDict=result ) for result in results ]
 
     def delete(self, table_name, id ):
         # Get the information on this table
@@ -111,15 +114,9 @@ class Humble(object):
     def insert(self, name, fromDict={} ):
         table = self.database.getTable( name )
 
-        def IN(key):
-            for column in table.columns:
-                if key == column.name:
-                    return True
-            return False
-            
         # Validate the fields first
         for key,value in fromDict.iteritems():
-            if not IN( key ):    
+            if not key in table.columns:
                 raise Exception( "Table '%s' has no such column '%s'" % ( name, key ) )
 
         # Insert the fields set on this object
@@ -129,8 +126,8 @@ class Humble(object):
         rowDict = {}
 
         table = self.database.getTable( name )
-        for column in table.columns:
-            rowDict[column.name] = fromDict.get( column.name, None )
+        for name in table.columns:
+            rowDict[name] = fromDict.get( name, None )
 
         # If fromDict did NOT include the primary key value
         if not table.pkey in fromDict:
@@ -138,7 +135,7 @@ class Humble(object):
             rowDict[table.pkey] = None
 
         # Tel the row object this is a 'new' row
-        return Row( self, table, fromDict=rowDict, new=True, withValues=True )
+        return Row( self, table.name, table.pkey, fromDict=rowDict, new=True, withValues=True )
 
     def commit(self):
         self.database.commit()

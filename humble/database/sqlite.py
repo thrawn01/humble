@@ -46,16 +46,12 @@ class SqlGenerator( object ):
 
     def findColumn( self, name ):
         result = []
+
+        # Search thru the available tables for a matching column name
         for key,table in self.parent.tables.iteritems():
-            # TODO: Replace Struct() with a proper class, 
-            # and put this method in the class
-            def IN(key):
-                for column in table.columns:
-                    if key == column.name:
-                        return True
-                return False
-            if IN( name ):
-                result.append( table.name )
+            # If the column exists in this table, record it
+            if name in table.__columns__:
+                result.append( table.__name__ )
 
         if len( result ) > 1:
             raise Exception( "Column '%s' is ambigous; you must specify a table name" % name )
@@ -75,7 +71,7 @@ class Sqlite( DatabaseInterface ):
         # Grab our cursor
         self.cursor = self.connection.cursor()
 
-        # TODO: Add the rest of the types
+        # TODO: Add the rest of the types ( Do we need this? )
         self.type_mapping = { 'INTEGER' : Int() }
         self.tables = {}
 
@@ -83,9 +79,16 @@ class Sqlite( DatabaseInterface ):
         if isinstance( tables, Table ):
             tables = [tables]
 
-        # Create a place for storing data about the table
+        # Create a place for storing data about the tables
         for table in tables:
-            self.tables[table.__name__] = Struct( name=table.__name__, pkey=table.__pkey__, columns=[], cached=False )
+            # If the user didn't specify columns
+            if not table.__columns__:
+                # Ask the database about the columns
+                # TODO: Get more detail about the table
+                #       Fill out the entire Table() object
+                table.__columns__ = self.fetchColumns( table.__name__ )
+                
+            self.tables[table.__name__] = table
         
         self.generator = SqlGenerator( parent=self )
 
@@ -93,13 +96,7 @@ class Sqlite( DatabaseInterface ):
         """ Return the table object called 'name' """
         try:
             table = self.tables[name]
-            # Column names cached already?
-            if not table.cached:
-                # fetch the column names from the DB
-                table.columns = self.fetchColumns( name )
-                table.cached = True
-            return table
-
+            return Struct( name=table.__name__, pkey=table.__pkey__, columns=table.__columns__ )
         except (ValueError,KeyError):
             raise Exception( "Sqlite() unknown table '%s'; forgot to add Sqlite( tables=[ Table() ] )?" % name )
 
@@ -140,10 +137,9 @@ class Sqlite( DatabaseInterface ):
         sql = ( "PRAGMA table_info( '%s' )" % name )
         log.debug( sql )
         self._execute( sql )
-        result = [ Column( name=row['name'], type=self.toType( row['type'], row['dflt_value'] ) )
-                   for row in self.cursor.fetchall() ]
+        result = [ row['name'] for row in self.cursor.fetchall() ]
         if not result:
-            raise Exception( "fetchColumns(%s) returned nothing; Non-existant table?" % name )
+            raise Exception( "'%s' - returned nothing; Non-existant table?" % sql )
         return result
 
     def _execute(self, sql, *args):

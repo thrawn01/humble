@@ -1,5 +1,6 @@
 from humble.database.sqlite import Sqlite
 from humble import Table
+import sqlite3
 import os
 
 db_name = "/tmp/%s.db" % os.getpid()
@@ -15,9 +16,13 @@ def setUpDatabase():
                 age     INTEGER,
                 address TEXT
                 ); """
+
+    # Create the table first, Sqlite() will ask the db about the columns
+    connection = sqlite3.connect( db_name )
+    cursor = connection.cursor()
+    cursor.execute( sql )
     
     database = Sqlite( tables = [ Table( 'employee', pkey='id' ) ], file=db_name )
-    database.execute( sql )
     return database
 
 def cleanUpDatabase():
