@@ -69,11 +69,6 @@ class Table(object):
         self.__dict__['__pkey__'] = pkey
         self.columns = columns
 
-class AdhocTable(Table):
-
-    def __init__(self, name, pkey, columns=[]):
-        Table.__init__( self, name, pkey, columns=columns )
-
 
 class Humble(object):
     

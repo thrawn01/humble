@@ -1,5 +1,5 @@
 from humble.database.sqlite import Sqlite
-from humble import AdhocTable
+from humble import Table
 import os
 
 db_name = "/tmp/%s.db" % os.getpid()
@@ -16,7 +16,7 @@ def setUpDatabase():
                 address TEXT
                 ); """
     
-    database = Sqlite( tables = [ AdhocTable( 'employee', pkey='id' ) ], file=db_name )
+    database = Sqlite( tables = [ Table( 'employee', pkey='id' ) ], file=db_name )
     database.execute( sql )
     return database
 

@@ -1,12 +1,12 @@
 import unittest, sys, os
 import logging
 
-from humble import Humble, AdhocTable 
+from humble import Humble
 import config
 
 #logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
-class AdhocTests( unittest.TestCase ):
+class HumbleTests( unittest.TestCase ):
 
     def setUp(self):
         self.employee_row1 = { 'first' : 'Derrick', 'last' : 'Wippler',
