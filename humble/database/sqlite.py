@@ -92,11 +92,15 @@ class Sqlite( DatabaseInterface ):
         
         self.generator = SqlGenerator( parent=self )
 
+    def getTableInfo(self, name):
+        """ Return some select information about a table """
+        table = self.getTable( name )
+        return Struct( name=table.__name__, pkey=table.__pkey__, columns=table.__columns__ )
+
     def getTable(self, name):
-        """ Return the table object called 'name' """
+        """ Return the table object for requested table """
         try:
-            table = self.tables[name]
-            return Struct( name=table.__name__, pkey=table.__pkey__, columns=table.__columns__ )
+            return self.tables[name]
         except (ValueError,KeyError):
             raise Exception( "Sqlite() unknown table '%s'; forgot to add Sqlite( tables=[ Table() ] )?" % name )
 

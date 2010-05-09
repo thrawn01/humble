@@ -83,7 +83,7 @@ class Humble(object):
 
     def fetchone(self, table_name, id):
         # get the information on this table
-        table = self.database.getTable( table_name )
+        table = self.database.getTableInfo( table_name )
 
         # Ask the database layer to fetch 1 row
         result = self.database.fetchone( table.name, table.pkey, id )
@@ -95,7 +95,7 @@ class Humble(object):
     
     def select(self, table_name, where=None):
         # get the information on this table
-        table = self.database.getTable( table_name )
+        table = self.database.getTableInfo( table_name )
    
         # Ask the database layer to build and execute the query
         results = self.database.select( table.name, where )
@@ -106,13 +106,13 @@ class Humble(object):
 
     def delete(self, table_name, id ):
         # Get the information on this table
-        table = self.database.getTable( table_name )
+        table = self.database.getTableInfo( table_name )
 
         where = { table.pkey : id }
         return self.database.delete( table.name, where )
 
     def insert(self, name, fromDict={} ):
-        table = self.database.getTable( name )
+        table = self.database.getTableInfo( name )
 
         # Validate the fields first
         for key,value in fromDict.iteritems():
@@ -125,7 +125,7 @@ class Humble(object):
     def create(self, name, fromDict={}):
         rowDict = {}
 
-        table = self.database.getTable( name )
+        table = self.database.getTableInfo( name )
         for name in table.columns:
             rowDict[name] = fromDict.get( name, None )
 
