@@ -2,6 +2,7 @@
     Humble Implements a Simple Active Record Pattern
     for a very light layer over database rows 
 """
+from humble.util import Util
 
 class Struct(object):
     def __init__(self, **attrs):
@@ -14,10 +15,10 @@ class Struct(object):
 
 class Row(object):
 
-    def __init__(self, parent, name, pkey, fromDict=None, new=False, withValues=False):
+    def __init__(self, database, name, pkey, fromDict=None, new=False, withValues=False):
         self.__dict__['__name__'] = name
         self.__dict__['__pkey__'] = pkey
-        self.__dict__['__parent__'] = parent
+        self.__dict__['__database__'] = database
         self.__dict__['__updates__'] = { }
         self.__dict__['__isNew__'] = new 
 
@@ -39,23 +40,23 @@ class Row(object):
         result = []
         for key,value in self.__dict__.items():
             # Skip our private variables
-            if key in ['__parent__', '__name__', '__pkey__', '__updates__']: continue
+            if key in ['__database__', '__name__', '__pkey__', '__updates__']: continue
             result.append( "  %s : %s" % (key,value) )
         return "%s ( %s )" % (self.__name__, "\n".join(result) )
 
     def delete(self):
         "Ask our parent to delete us, ( this doesn't invalidate us ) "
         where = { self.__pkey__ : self.__dict__[self.__pkey__] }
-        return self.__parent__.database.delete( self.__name__, where )
+        return self.__database__.delete( self.__name__, where )
 
     def save(self):
         if self.__isNew__:
             # Insert the fields set on this object
-            return self.__parent__.database.insert( self.__name__, self.__updates__ )
+            return self.__database__.insert( self.__name__, self.__updates__ )
 
         # Ask our parent to save the fields we changed
         where = { self.__pkey__ : self.__dict__[self.__pkey__] }
-        result = self.__parent__.database.update( self.__name__, where, self.__updates__ )
+        result = self.__database__.update( self.__name__, where, self.__updates__ )
         self.__dict__['__updates__'] = []
         return result
 
@@ -75,44 +76,61 @@ class Table(object):
 
 class Humble(object):
     
-    def __init__(self, database):
-        self.database = database
+    def __init__(self, databases):
+        self.databases = databases
 
-    def get(self, table_name, id):
-        return self.fetchone(table_name, id)
+        # Maybe we just passed a database, instead of a list of databases
+        if not Util.isList( databases ):
+            self.databases = [ databases ]
 
-    def fetchone(self, table_name, id):
-        # get the information on this table
-        table = self.database.getTableInfo( table_name )
+        # TODO: Postpone this until we actually access the database
+        for database in self.databases:
+            database.connect()
+
+    def get(self, name, id):
+        return self.fetchone(name, id)
+
+    def getDatabase(self, name ):
+        # TODO: Make this faster, by using a hash
+        for database in self.databases:
+            result = database.getTable( name )
+            if result:
+                return database
+        raise Exception( "Humble() - Unknown table '%s'; forgot to add table to database object?" % name )
+
+    def fetchone(self, name, id):
+        database = self.getDatabase( name )
+        table = database.getTableInfo( name )
 
         # Ask the database layer to fetch 1 row
-        result = self.database.fetchone( table.name, table.pkey, id )
+        result = database.fetchone( table.name, table.pkey, id )
         if not result:
-            raise Exception( "fetchone( table=%s, pkey=%s ) returned None; non-existant row?" % \
+            raise Exception( "Humble() - fetchone( table=%s, pkey=%s ) returned None; non-existant row?" % \
                     (table.name, table.pkey ) )
         # Return the row
-        return Row( self, table.name, table.pkey, fromDict=result )
+        return Row( database, table.name, table.pkey, fromDict=result )
     
-    def select(self, table_name, where=None):
-        # get the information on this table
-        table = self.database.getTableInfo( table_name )
+    def select(self, name, where=None):
+        database = self.getDatabase( name )
+        table = database.getTableInfo( name )
    
         # Ask the database layer to build and execute the query
-        results = self.database.select( table.name, where )
+        results = database.select( table.name, where )
         #TODO: if result = None
 
         # Return the rows
-        return [ Row( self, table.name, table.pkey, fromDict=result ) for result in results ]
+        return [ Row( database, table.name, table.pkey, fromDict=result ) for result in results ]
 
-    def delete(self, table_name, id ):
-        # Get the information on this table
-        table = self.database.getTableInfo( table_name )
+    def delete(self, name, id ):
+        database = self.getDatabase( name )
+        table = database.getTableInfo( name )
 
         where = { table.pkey : id }
-        return self.database.delete( table.name, where )
+        return database.delete( table.name, where )
 
     def insert(self, name, fromDict={} ):
-        table = self.database.getTableInfo( name )
+        database = self.getDatabase( name )
+        table = database.getTableInfo( name )
 
         # Validate the fields first
         for key,value in fromDict.iteritems():
@@ -120,12 +138,13 @@ class Humble(object):
                 raise Exception( "Table '%s' has no such column '%s'" % ( name, key ) )
 
         # Insert the fields set on this object
-        return self.database.insert( name, fromDict )
+        return database.insert( name, fromDict )
   
     def create(self, name, fromDict={}):
         rowDict = {}
 
-        table = self.database.getTableInfo( name )
+        database = self.getDatabase( name )
+        table = database.getTableInfo( name )
         for name in table.columns:
             rowDict[name] = fromDict.get( name, None )
 
@@ -135,8 +154,11 @@ class Humble(object):
             rowDict[table.pkey] = None
 
         # Tel the row object this is a 'new' row
-        return Row( self, table.name, table.pkey, fromDict=rowDict, new=True, withValues=True )
+        return Row( database, table.name, table.pkey, fromDict=rowDict, new=True, withValues=True )
 
-    def commit(self):
-        self.database.commit()
+    # TODO: Figure out a better way to do this, 
+    # ( Maybe pass in the name of the database ? )
+    def commit(self, name):
+        database = self.getDatabase( name )
+        database.commit()
 

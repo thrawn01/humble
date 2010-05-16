@@ -4,9 +4,17 @@ import logging
 
 from humble import Table, Struct
 from humble.database import DatabaseInterface, Int, Text, Column
+from humble.util import Util
 
 log = logging.getLogger("humble_sql")
 
+def SafeNone(object):
+    def __init__(self, exception ):
+        self.exception = exception
+
+    def __getattr__(self, attr):
+        raise self.exception
+        
 def dictFactory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
@@ -62,33 +70,38 @@ class SqlGenerator( object ):
 
 class Sqlite( DatabaseInterface ):
 
-    def __init__(self, tables, file ):
+    def __init__(self, tables, database ):
         log.debug( "Connect( %s )" % file )
+        self.cursor = SafeNone( Exception( "Sqlite() - Connect to a database before running a query" ) )
+        self.database = database
+        self.connection = None
+        self.tables = {}
+
+        # Maybe we just passed in 1 table, instead of a list of tables
+        if not Util.isList( tables ):
+            tables = [ tables ]
+
+        for table in tables:
+            self.tables[table.__name__] = table
+
+    def connect(self):
         # Open up the sqlite file
-        self.connection = sqlite3.connect( file )
+        self.connection = sqlite3.connect( self.database )
         # Sqlite DBI 2.0 extension - use dictFactory to create result rows
         self.connection.row_factory = dictFactory
         # Grab our cursor
         self.cursor = self.connection.cursor()
 
-        # TODO: Add the rest of the types ( Do we need this? )
-        self.type_mapping = { 'INTEGER' : Int() }
-        self.tables = {}
-
-        # Maybe we just passed in 1 table, instead of a list of tables
-        if isinstance( tables, Table ):
-            tables = [tables]
-
-        # Create a place for storing data about the tables
-        for table in tables:
-            # If the user didn't specify columns
+        # Ensure our table objects are complete
+        for name,table in self.tables.iteritems():
+            # If the columns are not specified
             if not table.__columns__:
                 # Ask the database about the columns
                 # TODO: Get more detail about the table
                 #       Fill out the entire Table() object
-                table.__columns__ = self.fetchColumns( table.__name__ )
+                table.__columns__ = self.fetchColumns( name )
                 
-            self.tables[table.__name__] = table
+            self.tables[name] = table
         
         self.generator = SqlGenerator( parent=self )
 
@@ -102,7 +115,7 @@ class Sqlite( DatabaseInterface ):
         try:
             return self.tables[name]
         except (ValueError,KeyError):
-            raise Exception( "Sqlite() unknown table '%s'; forgot to add Sqlite( tables=[ Table() ] )?" % name )
+            raise Exception( "Sqlite() - Unknown table '%s'; forgot to add Sqlite( tables=[ Table() ] )?" % name )
 
     def fetchone(self, name, pkey, id ):
         sql = "SELECT * FROM %s WHERE %s = '%s'" % ( name, pkey, id )
@@ -157,6 +170,9 @@ class Sqlite( DatabaseInterface ):
         self._execute( sql, *args )
         results = self.cursor.fetchall()
         return (self.cursor.description, results)
+
+    def createDatabase(self, name ):
+        pass
 
     def toType(self, field, default):
         # If we were asked for a type we don't know about

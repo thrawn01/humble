@@ -8,3 +8,11 @@ class Util(object):
             haystack = haystack.replace( sub, button )
         return haystack
 
+    @classmethod
+    def isList( self, kind ):
+        try:
+            kind[0]
+            return True
+        except TypeError:
+            return False
+

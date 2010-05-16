@@ -44,7 +44,7 @@ class DelcarativeTest( unittest.TestCase ):
         self.assertEquals( contact.__class__.__name__ , 'Contacts' )
 
     def testCreateTables(self):
-        db = Sqlite( tables = [ Employees() ], file=config.db_name )
+        db = Sqlite( tables = [ Employees() ], database=config.db_name )
 
         # Create the database
         #db.createDatabase( 'db_name' )

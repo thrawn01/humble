@@ -22,7 +22,7 @@ def setUpDatabase():
     cursor = connection.cursor()
     cursor.execute( sql )
     
-    database = Sqlite( tables = [ Table( 'employee', pkey='id' ) ], file=db_name )
+    database = Sqlite( tables = [ Table( 'employee', pkey='id' ) ], database=db_name )
     return database
 
 def cleanUpDatabase():
