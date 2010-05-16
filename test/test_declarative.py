@@ -26,12 +26,10 @@ class DelcarativeTest( unittest.TestCase ):
     def testMetaClass(self):
 
         emp = Employees()
-
         # Ensure the columns all exist, ( regardless of order )
         for column in ['last', 'age', 'address', 'id', 'first']:
             self.assertTrue( column in emp.__columns__ )
         self.assertEquals( emp.__name__ , 'employees' )
-        self.assertEquals( emp.__dict__ , {} )
         self.assertEquals( emp.__class__.__name__ , 'Employees' )
 
         contact = Contacts()
@@ -40,16 +38,17 @@ class DelcarativeTest( unittest.TestCase ):
         for column in ['id', 'type', 'number']:
             self.assertTrue( column in contact.__columns__ )
         self.assertEquals( contact.__name__ , 'Contacts' )
-        self.assertEquals( contact.__dict__ , {} )
         self.assertEquals( contact.__class__.__name__ , 'Contacts' )
 
     def testCreateTables(self):
         db = Sqlite( tables = [ Employees() ], database=config.db_name )
 
         # Create the database
-        #db.createDatabase( 'db_name' )
+        db.createDatabase( config.db_name )
+
         # Create the tables we know about
-        #db.createTable( 'db_name', 'contactloyee' )
+        sql = db.createTableStmt( Employees() )
+        self.assertEquals( sql, "CREATE TABLE employees ( last     TEXT( 30 ),age     INTEGER,address     TEXT,id     INTEGER,first     TEXT( 30 ) )" )
 
         #humble = Humble( db )
 

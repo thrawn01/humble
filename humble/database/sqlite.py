@@ -71,7 +71,7 @@ class SqlGenerator( object ):
 class Sqlite( DatabaseInterface ):
 
     def __init__(self, tables, database ):
-        log.debug( "Connect( %s )" % file )
+        log.debug( "Connect( %s )" % database )
         self.cursor = SafeNone( Exception( "Sqlite() - Connect to a database before running a query" ) )
         self.database = database
         self.connection = None
@@ -173,6 +173,15 @@ class Sqlite( DatabaseInterface ):
 
     def createDatabase(self, name ):
         pass
+
+    def createTableStmt(self, table ):
+        columns = []
+        for key in table.__columns__:
+            column = table.__getattr__(key)
+            columns.append( "%s     %s" % ( key, column ) )
+        
+        sql = "CREATE TABLE %s ( %s )" % ( table.__name__, ",".join( columns ) )
+        return sql
 
     def toType(self, field, default):
         # If we were asked for a type we don't know about

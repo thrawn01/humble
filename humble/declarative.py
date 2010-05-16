@@ -1,27 +1,24 @@
 
-class Row(object): pass
-#class Table(Row): pass
-#def __setattr__(cls, key, value):
-#    print key,value
-#ef __getattr__(cls, key):
-#   print key
+class Column(object):
+    def __repr__(self):
+        return "%s" % self.type
+        
+class Int(Column):
+    type = "INTEGER"
 
-class Column(object): pass
-class Int(Column): pass
 class Char(Column):
+    type = "TEXT"
     def __init__(self,size):
         try:
             self.size = int(size)
+            Column.__init__(self)
         except TypeError:
             raise TypeError( "Char( %r ) is invalid size" % type(size) )
+    def __repr__(self):
+        return "%s( %s )" % ( self.type, self.size )
 
-class Text(Column): pass
-
-
-def make_hook(f):
-    """Decorator to turn 'foo' method into '__foo__'"""
-    f.is_hook = 1
-    return f
+class Text(Column):
+    type = "TEXT"
 
 class DeclarativeType(type):
     def __new__(cls, name, bases, attrs):
@@ -38,66 +35,29 @@ class DeclarativeType(type):
 
         # Transform into an object that looks like a Table() object
         columns = []
+        dict = {}
         for key, value in attrs.iteritems():
             if not key in [ '__module__', '__name__' ]:
                 columns.append( key )
+                dict[key] = value
                 continue
             new_attrs[key] = value
-
 
         # TODO: Figure out the primary key
 
         new_attrs['__columns__'] = columns
+        # TODO: Must be a better way to do this
+        new_attrs['__classdict__'] = dict
 
         return super(DeclarativeType, cls).__new__(cls, name, bases, new_attrs )
 
     #def __init__(self, name, bases, attrs):
         #super(DeclarativeType, self).__init__(name, bases, attrs)
-
-        # classregistry.register(self, self.interfaces)
-        #print "Would register class %s now." % self
-
-    def __add__(self, other):
-        class AutoClass(self, other):
-            pass
-        return AutoClass
-        # Alternatively, to autogenerate the classname as well as the class:
-        # return type(self.__name__ + other.__name__, (self, other), {})
-
-    def unregister(self):
-        # classregistry.unregister(self)
-        print "Would unregister class %s now." % self
+        #print "attrs ", attrs
 
 class Declarative:
     __metaclass__ = DeclarativeType
 
-#class NoneSample(MyObject):
-    #pass
-
-# Will print "NoneType None"
-#print type(NoneSample), repr(NoneSample)
-
-#class Example(MyObject):
-#    def __init__(self, value):
-#        self.value = value
-#    @make_hook
-#    def add(self, other):
-#        return self.__class__(self.value + other.value)
-#
-# Will unregister the class
-#Example.unregister()
-
-#inst = Example(10)
-# Will fail with an AttributeError
-#inst.unregister()
-
-#print inst + inst
-#class Sibling(MyObject):
-#    pass
-
-#ExampleSibling = Example + Sibling
-# ExampleSibling is now a subclass of both Example and Sibling (with no
-# content of its own) although it will believe it's called 'AutoClass'
-#print ExampleSibling
-#print ExampleSibling.__mro__
+    def __getattr__( self, attr ):
+        return self.__classdict__[attr]
 
