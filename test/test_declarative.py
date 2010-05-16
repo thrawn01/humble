@@ -3,14 +3,20 @@ sys.path.append( ".." )
 
 from humble.declarative import Declarative, Int, Char, Text
 from humble.database.sqlite import Sqlite
+import config
 
-class Employee( Declarative ):
-    __name__ = 'employee'
+class Employees( Declarative ):
+    __name__ = 'employees'
     id = Int()
     first = Char(30)
     last = Char(30)
     age = Int()
     address = Text()
+
+class Contacts( Declarative ):
+    id = Int()
+    type = Char(6)
+    number = Char(10)
 
 class DelcarativeTest( unittest.TestCase ):
 
@@ -18,20 +24,32 @@ class DelcarativeTest( unittest.TestCase ):
     def tearDown(self): pass
 
     def testMetaClass(self):
-        emp = Employee()
-        self.assertEquals( emp.columns , ['last', 'age', 'address', 'id', 'first'] )
-        self.assertEquals( emp.name , 'employee' )
+
+        emp = Employees()
+
+        # Ensure the columns all exist, ( regardless of order )
+        for column in ['last', 'age', 'address', 'id', 'first']:
+            self.assertTrue( column in emp.__columns__ )
+        self.assertEquals( emp.__name__ , 'employees' )
         self.assertEquals( emp.__dict__ , {} )
-        self.assertEquals( emp.__class__.__name__ , 'Employee' )
+        self.assertEquals( emp.__class__.__name__ , 'Employees' )
+
+        contact = Contacts()
+
+        # Ensure the columns all exist, ( regardless of order )
+        for column in ['id', 'type', 'number']:
+            self.assertTrue( column in contact.__columns__ )
+        self.assertEquals( contact.__name__ , 'Contacts' )
+        self.assertEquals( contact.__dict__ , {} )
+        self.assertEquals( contact.__class__.__name__ , 'Contacts' )
 
     def testCreateTables(self):
-        pass
-        #db = Sqlite( tables = [ Employee() ] )
+        db = Sqlite( tables = [ Employees() ], file=config.db_name )
 
         # Create the database
         #db.createDatabase( 'db_name' )
         # Create the tables we know about
-        #db.createTable( 'db_name', 'employee' )
+        #db.createTable( 'db_name', 'contactloyee' )
 
         #humble = Humble( db )
 

@@ -34,15 +34,12 @@ class DeclarativeType(type):
         # If user didn't supply name
         if not attrs.get( '__name__', None ):
             # Use the name of the class
-            new_attrs['name'] = name
-        else:
-            new_attrs['name'] = attrs['__name__']
-            del attrs['__name__']
+            new_attrs['__name__'] = name
 
         # Transform into an object that looks like a Table() object
         columns = []
         for key, value in attrs.iteritems():
-            if not key in [ '__module__' ]:
+            if not key in [ '__module__', '__name__' ]:
                 columns.append( key )
                 continue
             new_attrs[key] = value
@@ -50,7 +47,7 @@ class DeclarativeType(type):
 
         # TODO: Figure out the primary key
 
-        new_attrs['columns'] = columns
+        new_attrs['__columns__'] = columns
 
         return super(DeclarativeType, cls).__new__(cls, name, bases, new_attrs )
 
